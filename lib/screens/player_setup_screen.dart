@@ -39,21 +39,28 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
   }
 
   Future<void> _loadProfile() async {
-    await ProfileManager.instance.loadProfile();
-    final profile = ProfileManager.instance.profile;
-    if (profile != null) {
-      _nameController.text = profile.playerName;
-      _ageController.text = profile.age.toString();
-      _selectedDifficulty = profile.difficulty;
-      _selectedRacket = profile.racket;
-      _selectedShoes = profile.shoes;
-      _selectedShirtStyle = profile.shirtStyle;
-    } else {
+    try {
+      await ProfileManager.instance.loadProfile();
+      final profile = ProfileManager.instance.profile;
+      if (profile != null) {
+        _nameController.text = profile.playerName;
+        _ageController.text = profile.age.toString();
+        _selectedDifficulty = profile.difficulty;
+        _selectedRacket = profile.racket;
+        _selectedShoes = profile.shoes;
+        _selectedShirtStyle = profile.shirtStyle;
+      } else {
+        _ageController.text = '18';
+      }
+    } catch (error) {
       _ageController.text = '18';
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingProfile = false;
+        });
+      }
     }
-    setState(() {
-      _isLoadingProfile = false;
-    });
   }
 
   @override
@@ -153,6 +160,8 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                       else ...[
                         TextField(
                           controller: _nameController,
+                          keyboardType: TextInputType.name,
+                          textCapitalization: TextCapitalization.words,
                           style: const TextStyle(color: Colors.black87),
                           decoration: InputDecoration(
                             filled: true,

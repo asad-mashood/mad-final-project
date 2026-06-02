@@ -1,79 +1,65 @@
+// components/referee_seat.dart
 import 'dart:ui';
 import 'package:flame/components.dart';
 import '../screens/game_screen.dart';
 
-class RefereeSeat extends PositionComponent with HasGameRef<TennisGame> {
+class RefereeSeat extends PositionComponent with HasGameReference<TennisGame> {
   @override
   Future<void> onLoad() async {
-    // Position on left side of net
-    position = Vector2(15, gameRef.size.y / 2 - 40);
+    await super.onLoad();
     size = Vector2(30, 60);
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    position = Vector2(15, size.y / 2 - 40);
   }
 
   @override
   void render(Canvas canvas) {
     // Draw high chair structure
-    final chairPaint = Paint()
-      ..color = const Color(0xFF424242) // Dark gray
-      ..style = PaintingStyle.fill;
+    final chairPaint =
+        Paint()
+          ..color = const Color(0xFF424242) // Dark gray
+          ..style = PaintingStyle.fill;
 
     // Chair legs (thin lines)
-    final legPaint = Paint()
-      ..color = const Color(0xFF616161)
-      ..strokeWidth = 3;
+    final legPaint =
+        Paint()
+          ..color = const Color(0xFF616161)
+          ..strokeWidth = 3;
 
     // Left leg
-    canvas.drawLine(
-      const Offset(5, 60),
-      const Offset(10, 30),
-      legPaint,
-    );
+    canvas.drawLine(const Offset(5, 60), const Offset(10, 30), legPaint);
 
     // Right leg
-    canvas.drawLine(
-      const Offset(25, 60),
-      const Offset(20, 30),
-      legPaint,
-    );
+    canvas.drawLine(const Offset(25, 60), const Offset(20, 30), legPaint);
 
     // Seat platform
-    canvas.drawRect(
-      const Rect.fromLTWH(5, 25, 20, 8),
-      chairPaint,
-    );
+    canvas.drawRect(const Rect.fromLTWH(5, 25, 20, 8), chairPaint);
 
     // Backrest
-    canvas.drawRect(
-      const Rect.fromLTWH(5, 10, 4, 20),
-      chairPaint,
-    );
+    canvas.drawRect(const Rect.fromLTWH(5, 10, 4, 20), chairPaint);
 
     // Referee figure (simplified)
-    final refPaint = Paint()
-      ..color = const Color(0xFF000000)
-      ..style = PaintingStyle.fill;
+    final refPaint =
+        Paint()
+          ..color = const Color(0xFF000000)
+          ..style = PaintingStyle.fill;
 
     // Head
-    canvas.drawCircle(
-      const Offset(15, 15),
-      4,
-      refPaint,
-    );
+    canvas.drawCircle(const Offset(15, 15), 4, refPaint);
 
     // Body
-    canvas.drawRect(
-      const Rect.fromLTWH(12, 19, 6, 10),
-      refPaint,
-    );
+    canvas.drawRect(const Rect.fromLTWH(12, 19, 6, 10), refPaint);
 
     // White shirt detail
-    final shirtPaint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..style = PaintingStyle.fill;
+    final shirtPaint =
+        Paint()
+          ..color = const Color(0xFFFFFFFF)
+          ..style = PaintingStyle.fill;
 
-    canvas.drawRect(
-      const Rect.fromLTWH(13, 20, 4, 4),
-      shirtPaint,
-    );
+    canvas.drawRect(const Rect.fromLTWH(13, 20, 4, 4), shirtPaint);
   }
 }

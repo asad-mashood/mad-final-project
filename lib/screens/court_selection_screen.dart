@@ -22,6 +22,12 @@ class CourtSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayedRacket = racket ?? 'Beginner Racket';
+    final displayedShoes = shoes ?? 'Basic Shoes';
+    final displayedShirt = shirtStyle ?? 'Classic White';
+    final profileLabel =
+        playerName.toLowerCase() == 'guest' ? 'Guest Profile' : 'Saved Profile';
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -60,6 +66,58 @@ class CourtSelectionScreen extends StatelessWidget {
                   ],
                 ),
               ),
+
+              // Profile Summary
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        profileLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Player: $playerName',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Age: $age  •  Difficulty: $difficulty',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Gear: $displayedRacket, $displayedShoes, $displayedShirt',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
 
               // Court Options
               Expanded(

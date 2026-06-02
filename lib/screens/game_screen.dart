@@ -42,6 +42,9 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late TennisGame game;
+  final ValueNotifier<String> _loadStatus = ValueNotifier(
+    'Initializing game...',
+  );
   Offset? _swipeStart;
   Offset? _swipeCurrent;
 
@@ -51,13 +54,18 @@ class _GameScreenState extends State<GameScreen> {
     game = TennisGame(
       courtColor: widget.courtColor,
       courtName: widget.courtName,
-      context: context,
+      onExit: () {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       playerName: widget.playerName,
       age: widget.age,
       difficulty: widget.difficulty,
       racket: widget.racket,
       shoes: widget.shoes,
       shirtStyle: widget.shirtStyle,
+      statusNotifier: _loadStatus,
     );
   }
 
@@ -66,6 +74,7 @@ class _GameScreenState extends State<GameScreen> {
     game.showShotControls.dispose();
     game.shotPowerLabel.dispose();
     game.selectedShotLabel.dispose();
+    _loadStatus.dispose();
     super.dispose();
   }
 
@@ -111,20 +120,71 @@ class _GameScreenState extends State<GameScreen> {
               onPanUpdate: _handlePanUpdate,
               onPanEnd: _handlePanEnd,
               onPanCancel: _handlePanCancel,
-              child: GameWidget(game: game),
+              child: Container(
+                color: widget.courtColor.withValues(alpha: 0.4),
+                child: SizedBox.expand(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: GameWidget(
+                          game: game,
+                          loadingBuilder:
+                              (context) => const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 24,
+                        left: 0,
+                        right: 0,
+                        child: ValueListenableBuilder<String>(
+                          valueListenable: _loadStatus,
+                          builder: (context, status, child) {
+                            return Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  status,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           // Shot controls
-          ValueListenableBuilder<bool>(
-            valueListenable: game.showShotControls,
-            builder: (context, showShotControls, child) {
-              if (!showShotControls) {
-                return const SizedBox.shrink();
-              }
-              return Positioned(
-                bottom: 40,
-                left: 20,
-                child: Column(
+          Positioned(
+            bottom: 40,
+            left: 20,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: game.showShotControls,
+              builder: (context, showShotControls, child) {
+                if (!showShotControls) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
@@ -178,9 +238,9 @@ class _GameScreenState extends State<GameScreen> {
                       },
                     ),
                   ],
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
           // Sprint Button (Bottom Right)
           Positioned(
@@ -272,16 +332,17 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
-class TennisGame extends FlameGame with HasCollisionDetection, DragCallbacks {
+class TennisGame extends FlameGame with HasCollisionDetection {
   final Color courtColor;
   final String courtName;
-  final BuildContext context;
+  final VoidCallback onExit;
   final String playerName;
   final int age;
   final String difficulty;
   final String? racket;
   final String? shoes;
   final String? shirtStyle;
+  final ValueNotifier<String>? statusNotifier;
 
   // Shot mechanics
   String nextShotType = 'Flat'; // 'Flat', 'Lob', 'Slice', 'Power'
@@ -311,17 +372,24 @@ class TennisGame extends FlameGame with HasCollisionDetection, DragCallbacks {
   TennisGame({
     required this.courtColor,
     required this.courtName,
-    required this.context,
+    required this.onExit,
     required this.playerName,
     required this.age,
     required this.difficulty,
     this.racket,
     this.shoes,
     this.shirtStyle,
+    this.statusNotifier,
   });
 
   @override
+  Color backgroundColor() => const Color(0xFF1A1A2E);
+
+  @override
   Future<void> onLoad() async {
+    statusNotifier?.value = 'Loading game...';
+    await super.onLoad();
+
     // Add court background (bottom layer)
     add(Court(color: courtColor));
 
@@ -355,6 +423,7 @@ class TennisGame extends FlameGame with HasCollisionDetection, DragCallbacks {
     ball = Ball();
     add(ball);
 
+    statusNotifier?.value = 'Game loaded';
     debugPrint('$courtName court loaded!');
   }
 
@@ -429,9 +498,11 @@ class TennisGame extends FlameGame with HasCollisionDetection, DragCallbacks {
   }
 
   void movePlayerTo(Vector2 rawPosition) {
-    final targetX = rawPosition.x.clamp(40.0, size.x - 40.0);
-    final targetY = rawPosition.y.clamp(size.y / 2 + 20.0, size.y - 20.0);
-    bottomPlayer.setTarget(Vector2(targetX, targetY));
+    if (size.x > 80 && size.y > 80) {
+      final targetX = rawPosition.x.clamp(40.0, size.x - 40.0);
+      final targetY = rawPosition.y.clamp(size.y / 2 + 20.0, size.y - 20.0);
+      bottomPlayer.setTarget(Vector2(targetX, targetY));
+    }
   }
 
   // Check if game is over (someone won)
@@ -525,7 +596,7 @@ class TennisGame extends FlameGame with HasCollisionDetection, DragCallbacks {
 
   // Exit to home screen
   void exitGame() {
-    Navigator.of(context).pop();
+    onExit();
   }
 
   // Helper methods to play sound safely

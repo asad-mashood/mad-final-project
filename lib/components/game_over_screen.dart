@@ -4,7 +4,8 @@ import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import '../screens/game_screen.dart';
 
-class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapCallbacks {
+class GameOverScreen extends PositionComponent
+    with HasGameReference<TennisGame>, TapCallbacks {
   final bool playerWon;
   final int playerScore;
   final int aiScore;
@@ -22,23 +23,26 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
 
   @override
   Future<void> onLoad() async {
-    size = gameRef.size;
+    await super.onLoad();
+    size = game.size;
     priority = 100; // Render on top
   }
 
   @override
   void render(Canvas canvas) {
     // Semi-transparent dark overlay
-    final overlayPaint = Paint()
-      ..color = const Color(0xFF000000).withValues(alpha: 0.85);
+    final overlayPaint =
+        Paint()..color = const Color(0xFF000000).withValues(alpha: 0.85);
     canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), overlayPaint);
 
     final centerX = size.x / 2;
     final centerY = size.y / 2;
 
     // Trophy or result icon background
-    final iconBgPaint = Paint()
-      ..color = playerWon ? const Color(0xFFFFD700) : const Color(0xFF9E9E9E);
+    final iconBgPaint =
+        Paint()
+          ..color =
+              playerWon ? const Color(0xFFFFD700) : const Color(0xFF9E9E9E);
     canvas.drawCircle(Offset(centerX, centerY - 180), 50, iconBgPaint);
 
     // Result icon text (trophy emoji substitute) - centered
@@ -79,7 +83,8 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
       fontSize: 28,
       fontWeight: FontWeight.bold,
     );
-    final winnerText = playerWon ? '${playerName.toUpperCase()} WINS!' : 'AI WINS!';
+    final winnerText =
+        playerWon ? '${playerName.toUpperCase()} WINS!' : 'AI WINS!';
     final winnerSpan = TextSpan(text: winnerText, style: winnerStyle);
     final winnerPainter = TextPainter(
       text: winnerSpan,
@@ -95,7 +100,10 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
       color: Color(0xFFFFFFFF),
       fontSize: 24,
     );
-    final scoreLabelSpan = TextSpan(text: 'Final Score', style: scoreLabelStyle);
+    final scoreLabelSpan = TextSpan(
+      text: 'Final Score',
+      style: scoreLabelStyle,
+    );
     final scoreLabelPainter = TextPainter(
       text: scoreLabelSpan,
       textDirection: TextDirection.ltr,
@@ -111,7 +119,10 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
       fontSize: 36,
       fontWeight: FontWeight.bold,
     );
-    final scoreValueSpan = TextSpan(text: '$playerScore - $aiScore', style: scoreValueStyle);
+    final scoreValueSpan = TextSpan(
+      text: '$playerScore - $aiScore',
+      style: scoreValueStyle,
+    );
     final scoreValuePainter = TextPainter(
       text: scoreValueSpan,
       textDirection: TextDirection.ltr,
@@ -151,22 +162,24 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
 
   void _drawButton(Canvas canvas, RRect rect, String text, Color color) {
     // Button background with gradient
-    final bgPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: 0.9),
-          color.withValues(alpha: 0.7),
-        ],
-      ).createShader(rect.outerRect);
+    final bgPaint =
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              color.withValues(alpha: 0.9),
+              color.withValues(alpha: 0.7),
+            ],
+          ).createShader(rect.outerRect);
     canvas.drawRRect(rect, bgPaint);
 
     // Button border
-    final borderPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+    final borderPaint =
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.3)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2;
     canvas.drawRRect(rect, borderPaint);
 
     // Button text - properly centered
@@ -183,7 +196,10 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
     )..layout();
     textPainter.paint(
       canvas,
-      Offset(rect.center.dx - textPainter.width / 2, rect.center.dy - textPainter.height / 2),
+      Offset(
+        rect.center.dx - textPainter.width / 2,
+        rect.center.dy - textPainter.height / 2,
+      ),
     );
   }
 
@@ -192,9 +208,9 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
     final tapPosition = event.localPosition;
 
     if (playAgainButton.contains(Offset(tapPosition.x, tapPosition.y))) {
-      gameRef.playAgain();
+      game.playAgain();
     } else if (exitButton.contains(Offset(tapPosition.x, tapPosition.y))) {
-      gameRef.exitGame();
+      game.exitGame();
     }
   }
 }

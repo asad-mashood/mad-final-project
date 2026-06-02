@@ -43,14 +43,22 @@ class Ball extends CircleComponent
         Paint()
           ..color = const Color(0xFFFFEB3B)
           ..style = PaintingStyle.fill;
-    position = game.size / 2;
     add(CircleHitbox());
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    if (position == Vector2.zero() || position.x == 0) {
+      position = size / 2;
+    }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
     if (game.isPaused || game.isGameOver) return;
+    if (game.size.x <= 100 || game.size.y <= 100) return;
 
     // XY Movement
     position += velocity * speedModifier * dt;
@@ -68,9 +76,11 @@ class Ball extends CircleComponent
     scale = Vector2.all(1.0 + (z / 200.0));
 
     // Bounce off left and right walls
-    if (position.x - radius <= 0 || position.x + radius >= game.size.x) {
-      velocity.x = -velocity.x;
-      position.x = position.x.clamp(radius, game.size.x - radius);
+    if (game.size.x > 2 * radius) {
+      if (position.x - radius <= 0 || position.x + radius >= game.size.x) {
+        velocity.x = -velocity.x;
+        position.x = position.x.clamp(radius, game.size.x - radius);
+      }
     }
 
     // Scoring

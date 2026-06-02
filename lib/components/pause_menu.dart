@@ -4,22 +4,24 @@ import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import '../screens/game_screen.dart';
 
-class PauseMenu extends PositionComponent with HasGameRef<TennisGame>, TapCallbacks {
+class PauseMenu extends PositionComponent
+    with HasGameReference<TennisGame>, TapCallbacks {
   late RRect resumeButton;
   late RRect restartButton;
   late RRect exitButton;
 
   @override
   Future<void> onLoad() async {
-    size = gameRef.size;
+    await super.onLoad();
+    size = game.size;
     priority = 100; // Render on top of everything
   }
 
   @override
   void render(Canvas canvas) {
     // Semi-transparent dark overlay
-    final overlayPaint = Paint()
-      ..color = const Color(0xFF000000).withValues(alpha: 0.7);
+    final overlayPaint =
+        Paint()..color = const Color(0xFF000000).withValues(alpha: 0.7);
     canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), overlayPaint);
 
     final centerX = size.x / 2;
@@ -72,7 +74,10 @@ class PauseMenu extends PositionComponent with HasGameRef<TennisGame>, TapCallba
     // Exit Button
     exitButton = RRect.fromRectAndRadius(
       Rect.fromCenter(
-        center: Offset(centerX, centerY + 2 * (buttonHeight + buttonSpacing) - 30),
+        center: Offset(
+          centerX,
+          centerY + 2 * (buttonHeight + buttonSpacing) - 30,
+        ),
         width: buttonWidth,
         height: buttonHeight,
       ),
@@ -83,22 +88,24 @@ class PauseMenu extends PositionComponent with HasGameRef<TennisGame>, TapCallba
 
   void _drawButton(Canvas canvas, RRect rect, String text, Color color) {
     // Button background with gradient effect
-    final bgPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: 0.9),
-          color.withValues(alpha: 0.7),
-        ],
-      ).createShader(rect.outerRect);
+    final bgPaint =
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              color.withValues(alpha: 0.9),
+              color.withValues(alpha: 0.7),
+            ],
+          ).createShader(rect.outerRect);
     canvas.drawRRect(rect, bgPaint);
 
     // Button border
-    final borderPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+    final borderPaint =
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.3)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2;
     canvas.drawRRect(rect, borderPaint);
 
     // Button text - properly centered
@@ -115,7 +122,10 @@ class PauseMenu extends PositionComponent with HasGameRef<TennisGame>, TapCallba
     )..layout();
     textPainter.paint(
       canvas,
-      Offset(rect.center.dx - textPainter.width / 2, rect.center.dy - textPainter.height / 2),
+      Offset(
+        rect.center.dx - textPainter.width / 2,
+        rect.center.dy - textPainter.height / 2,
+      ),
     );
   }
 
@@ -124,11 +134,11 @@ class PauseMenu extends PositionComponent with HasGameRef<TennisGame>, TapCallba
     final tapPosition = event.localPosition;
 
     if (resumeButton.contains(Offset(tapPosition.x, tapPosition.y))) {
-      gameRef.togglePause();
+      game.togglePause();
     } else if (restartButton.contains(Offset(tapPosition.x, tapPosition.y))) {
-      gameRef.restartGame();
+      game.restartGame();
     } else if (exitButton.contains(Offset(tapPosition.x, tapPosition.y))) {
-      gameRef.exitGame();
+      game.exitGame();
     }
   }
 }

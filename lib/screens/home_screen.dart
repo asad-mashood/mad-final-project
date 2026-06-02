@@ -1,4 +1,4 @@
-﻿// screens/home_screen.dart
+// screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/player_profile.dart';
@@ -117,170 +117,173 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CustomPaint(painter: TennisCourtPainter()),
               ),
               Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.yellow.shade600,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.sports_tennis,
-                        size: 80,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    const Text(
-                      'WIMBLEDON',
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 4,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black45,
-                            offset: Offset(2, 2),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Text(
-                      '2026',
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w300,
-                        color: Color(0xFFFFEB3B),
-                        letterSpacing: 8,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black45,
-                            offset: Offset(2, 2),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    if (_isLoading)
-                      const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      )
-                    else if (_profile != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 36.0,
-                          vertical: 12,
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              'Profile: ${_profile!.playerName}, ${_profile!.age} yrs, ${_profile!.difficulty}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Racket: ${_profile!.racket}, Shoes: ${_profile!.shoes}, Shirt: ${_profile!.shirtStyle}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white70,
-                              ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.yellow.shade600,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
-                      )
-                    else
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 36.0,
-                          vertical: 12,
-                        ),
-                        child: Text(
-                          'No saved profile yet. Set up your name, age, equipment and difficulty once, then start matches directly.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 14, color: Colors.white70),
+                        child: const Icon(
+                          Icons.sports_tennis,
+                          size: 80,
+                          color: Colors.white,
                         ),
                       ),
-                    const SizedBox(height: 30),
-                    _MenuButton(
-                      label: _profile != null ? 'START MATCH' : 'PLAY GUEST',
-                      icon: Icons.play_arrow,
-                      onPressed: _startMatch,
-                    ),
-                    const SizedBox(height: 20),
-                    _MenuButton(
-                      label: 'PROFILE',
-                      icon: Icons.person,
-                      onPressed: _openProfileEditor,
-                    ),
-                    const SizedBox(height: 20),
-                    _MenuButton(
-                      label: 'PREVIOUS RESULTS',
-                      icon: Icons.emoji_events,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder:
-                                (context, animation, secondaryAnimation) =>
-                                    const ResultsScreen(),
-                            transitionsBuilder: (
-                              context,
-                              animation,
-                              secondaryAnimation,
-                              child,
-                            ) {
-                              const begin = Offset(1.0, 0.0);
-                              const end = Offset.zero;
-                              const curve = Curves.easeInOut;
-                              var tween = Tween(
-                                begin: begin,
-                                end: end,
-                              ).chain(CurveTween(curve: curve));
-                              var offsetAnimation = animation.drive(tween);
-                              return SlideTransition(
-                                position: offsetAnimation,
-                                child: child,
-                              );
-                            },
-                            transitionDuration: const Duration(
-                              milliseconds: 800,
+                      const SizedBox(height: 30),
+                      const Text(
+                        'WIMBLEDON',
+                        style: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 4,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black45,
+                              offset: Offset(2, 2),
+                              blurRadius: 8,
                             ),
+                          ],
+                        ),
+                      ),
+                      const Text(
+                        '2026',
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w300,
+                          color: Color(0xFFFFEB3B),
+                          letterSpacing: 8,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black45,
+                              offset: Offset(2, 2),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      if (_isLoading)
+                        const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        )
+                      else if (_profile != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 36.0,
+                            vertical: 12,
                           ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    _MenuButton(
-                      label: 'EXIT',
-                      icon: Icons.exit_to_app,
-                      onPressed: () {
-                        SystemNavigator.pop();
-                      },
-                    ),
-                    const SizedBox(height: 30),
-                    const Text(
-                      'reserved right by Muhammad Asad FA23-BAI-039',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
+                          child: Column(
+                            children: [
+                              Text(
+                                'Profile: ${_profile!.playerName}, ${_profile!.age} yrs, ${_profile!.difficulty}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Racket: ${_profile!.racket}, Shoes: ${_profile!.shoes}, Shirt: ${_profile!.shirtStyle}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 36.0,
+                            vertical: 12,
+                          ),
+                          child: Text(
+                            'No saved profile yet. Set up your name, age, equipment and difficulty once, then start matches directly.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 14, color: Colors.white70),
+                          ),
+                        ),
+                      const SizedBox(height: 30),
+                      _MenuButton(
+                        label: _profile != null ? 'START MATCH' : 'PLAY GUEST',
+                        icon: Icons.play_arrow,
+                        onPressed: _startMatch,
+                      ),
+                      const SizedBox(height: 20),
+                      _MenuButton(
+                        label: 'PROFILE',
+                        icon: Icons.person,
+                        onPressed: _openProfileEditor,
+                      ),
+                      const SizedBox(height: 20),
+                      _MenuButton(
+                        label: 'PREVIOUS RESULTS',
+                        icon: Icons.emoji_events,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      const ResultsScreen(),
+                              transitionsBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                                child,
+                              ) {
+                                const begin = Offset(1.0, 0.0);
+                                const end = Offset.zero;
+                                const curve = Curves.easeInOut;
+                                var tween = Tween(
+                                  begin: begin,
+                                  end: end,
+                                ).chain(CurveTween(curve: curve));
+                                var offsetAnimation = animation.drive(tween);
+                                return SlideTransition(
+                                  position: offsetAnimation,
+                                  child: child,
+                                );
+                              },
+                              transitionDuration: const Duration(
+                                milliseconds: 800,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _MenuButton(
+                        label: 'EXIT',
+                        icon: Icons.exit_to_app,
+                        onPressed: () {
+                          SystemNavigator.pop();
+                        },
+                      ),
+                      const SizedBox(height: 30),
+                      const Text(
+                        'reserved right by Muhammad Asad FA23-BAI-039',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

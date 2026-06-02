@@ -19,13 +19,20 @@ class Court extends RectangleComponent with HasGameReference<TennisGame> {
 
   @override
   Future<void> onLoad() async {
-    size = game.size;
+    await super.onLoad();
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    this.size = size;
     position = Vector2.zero();
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.size.x <= 100 || game.size.y <= 100) return;
 
     // Randomly spawn camera flashes
     _flashTimer -= dt;
@@ -78,6 +85,15 @@ class Court extends RectangleComponent with HasGameReference<TennisGame> {
     final w = size.x;
     final h = size.y;
     final courtName = game.courtName;
+
+    if (w <= 0 || h <= 0) {
+      // Fallback so the game surface is always visible during initialization.
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, game.size.x, game.size.y),
+        Paint()..color = color,
+      );
+      return;
+    }
 
     // ── 1. Stadium outer dark area ───────────────────────────
     final stadiumPaint =

@@ -47,6 +47,7 @@ class Player extends PositionComponent
 
   @override
   Future<void> onLoad() async {
+    await super.onLoad();
     size = Vector2(80, 20); // Paddle size (racket)
     anchor = Anchor.center;
 
@@ -55,11 +56,23 @@ class Player extends PositionComponent
 
     stamina = stats.maxStamina;
 
-    // Position players
+    // Position players if the game already has size available
+    if (game.size.x > 0 && game.size.y > 0) {
+      _reposition(game.size);
+    }
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    _reposition(size);
+  }
+
+  void _reposition(Vector2 size) {
     if (isBottom) {
-      position = Vector2(game.size.x / 2, game.size.y - 60);
+      position = Vector2(size.x / 2, size.y - 60);
     } else {
-      position = Vector2(game.size.x / 2, 60);
+      position = Vector2(size.x / 2, 60);
     }
   }
 
@@ -158,20 +171,23 @@ class Player extends PositionComponent
 
     // Timing zone around bottom player
     if (isBottom) {
-      final distanceToBall = game.ball.position.distanceTo(position);
-      if (distanceToBall < 140) {
-        final zoneColor =
-            distanceToBall < 60
-                ? Colors.green
-                : distanceToBall < 100
-                ? Colors.yellow
-                : Colors.red;
-        final ringPaint =
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 3
-              ..color = zoneColor.withValues(alpha: 0.65);
-        canvas.drawCircle(Offset.zero, 70, ringPaint);
+      final ballPos = _safeBallPosition();
+      if (ballPos != null) {
+        final distanceToBall = ballPos.distanceTo(position);
+        if (distanceToBall < 140) {
+          final zoneColor =
+              distanceToBall < 60
+                  ? Colors.green
+                  : distanceToBall < 100
+                  ? Colors.yellow
+                  : Colors.red;
+          final ringPaint =
+              Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 3
+                ..color = zoneColor.withValues(alpha: 0.65);
+          canvas.drawCircle(Offset.zero, 70, ringPaint);
+        }
       }
     }
 
@@ -218,6 +234,7 @@ class Player extends PositionComponent
   void update(double dt) {
     super.update(dt);
     if (game.isPaused || game.isGameOver) return;
+    if (game.size.x <= 100 || game.size.y <= 100) return;
 
     if (isBottom) {
       // Tap-to-move target movement
@@ -258,25 +275,28 @@ class Player extends PositionComponent
       final screenWidth = game.size.x;
       final screenHeight = game.size.y;
 
-      position.x = position.x.clamp(halfWidth, screenWidth - halfWidth);
-      // Limit Y movement to the bottom half of the court
-      position.y = position.y.clamp(
-        screenHeight / 2 + halfHeight,
-        screenHeight - halfHeight,
-      );
+      if (screenWidth > size.x && screenHeight > size.y) {
+        position.x = position.x.clamp(halfWidth, screenWidth - halfWidth);
+        // Limit Y movement to the bottom half of the court
+        position.y = position.y.clamp(
+          screenHeight / 2 + halfHeight,
+          screenHeight - halfHeight,
+        );
+      }
     }
   }
 
   void setTarget(Vector2 target) {
     final halfWidth = size.x / 2;
     final halfHeight = size.y / 2;
-    targetPosition = Vector2(
-      target.x.clamp(halfWidth, game.size.x - halfWidth),
-      target.y.clamp(
-        game.size.y / 2 + halfHeight,
-        game.size.y - halfHeight,
-      ),
-    );
+    if (game.size.x > size.x && game.size.y > size.y) {
+      targetPosition = Vector2(
+        target.x.clamp(halfWidth, game.size.x - halfWidth),
+        target.y.clamp(game.size.y / 2 + halfHeight, game.size.y - halfHeight),
+      );
+    } else {
+      targetPosition = target;
+    }
   }
 
   // Improved AI for top player
@@ -323,6 +343,14 @@ class Player extends PositionComponent
       final halfWidth = size.x / 2;
       final screenWidth = game.size.x;
       position.x = position.x.clamp(halfWidth, screenWidth - halfWidth);
+    }
+  }
+
+  Vector2? _safeBallPosition() {
+    try {
+      return game.ball.position;
+    } catch (_) {
+      return null;
     }
   }
 }

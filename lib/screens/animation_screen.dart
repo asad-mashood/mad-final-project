@@ -82,6 +82,13 @@ class _AnimationScreenState extends State<AnimationScreen> {
                 width: 300,
                 height: 300,
                 fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.sports_tennis,
+                    size: 150,
+                    color: Colors.white,
+                  );
+                },
               ),
 
               const SizedBox(height: 40),
@@ -99,6 +106,49 @@ class _AnimationScreenState extends State<AnimationScreen> {
                       color: Colors.black45,
                       offset: Offset(2, 2),
                       blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      widget.playerName.isEmpty
+                          ? 'Guest Player'
+                          : widget.playerName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Difficulty: ${widget.difficulty}  •  Age: ${widget.age}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Equipment: ${widget.racket ?? 'Beginner Racket'}, ${widget.shoes ?? 'Basic Shoes'}, ${widget.shirtStyle ?? 'Classic White'}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
                     ),
                   ],
                 ),
