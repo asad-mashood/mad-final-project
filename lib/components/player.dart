@@ -328,6 +328,9 @@ class Player extends PositionComponent
   // ── Main render ──────────────────────────────────────
   @override
   void render(Canvas canvas) {
+    if (isBottom) {
+      debugPrint('Player render: shirtStyle=$shirtStyle, shirtColor=$_shirtColor');
+    }
     final ym = isBottom ? 1.0 : -1.0;
     final shirt  = _shirtColor;
     final shorts = _shortsColor;

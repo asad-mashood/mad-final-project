@@ -30,7 +30,15 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
     'Endurance Shoes',
   ];
   String _selectedShirtStyle = 'Classic White';
-  final List<String> _shirtStyles = ['Classic White', 'Pro Red', 'Neon Blue'];
+  final List<String> _shirtStyles = [
+    'Classic White',
+    'Pro Red',
+    'Neon Blue',
+    'Navy Blue',
+    'Red Fury',
+    'All Black',
+    'Forest Green'
+  ];
 
   @override
   void initState() {
@@ -45,10 +53,34 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
       if (profile != null) {
         _nameController.text = profile.playerName;
         _ageController.text = profile.age.toString();
-        _selectedDifficulty = profile.difficulty;
-        _selectedRacket = profile.racket;
-        _selectedShoes = profile.shoes;
-        _selectedShirtStyle = profile.shirtStyle;
+        
+        final loadedDifficulty = profile.difficulty;
+        if (_difficulties.contains(loadedDifficulty)) {
+          _selectedDifficulty = loadedDifficulty;
+        } else {
+          _selectedDifficulty = 'Medium';
+        }
+
+        final loadedRacket = profile.racket;
+        if (_rackets.contains(loadedRacket)) {
+          _selectedRacket = loadedRacket;
+        } else {
+          _selectedRacket = 'Beginner Racket';
+        }
+
+        final loadedShoes = profile.shoes;
+        if (_shoes.contains(loadedShoes)) {
+          _selectedShoes = loadedShoes;
+        } else {
+          _selectedShoes = 'Basic Shoes';
+        }
+
+        final loadedShirt = profile.shirtStyle;
+        if (_shirtStyles.contains(loadedShirt)) {
+          _selectedShirtStyle = loadedShirt;
+        } else {
+          _selectedShirtStyle = 'Classic White';
+        }
       } else {
         _ageController.text = '18';
       }
