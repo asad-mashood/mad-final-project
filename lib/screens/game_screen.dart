@@ -1,5 +1,4 @@
 // screens/game_screen.dart
-import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import '../components/court.dart';
@@ -26,7 +25,7 @@ class GameScreen extends StatefulWidget {
 
   const GameScreen({
     super.key,
-    this.courtColor = const Color(0xFF2E7D32), // Default green (Wimbledon)
+    this.courtColor = const Color(0xFF2E7D32),
     this.courtName = 'Wimbledon',
     required this.playerName,
     required this.age,
@@ -42,9 +41,6 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late TennisGame game;
-  final ValueNotifier<String> _loadStatus = ValueNotifier(
-    'Initializing game...',
-  );
   Offset? _swipeStart;
   Offset? _swipeCurrent;
 
@@ -54,18 +50,15 @@ class _GameScreenState extends State<GameScreen> {
     game = TennisGame(
       courtColor: widget.courtColor,
       courtName: widget.courtName,
-      onExit: () {
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-      },
       playerName: widget.playerName,
       age: widget.age,
       difficulty: widget.difficulty,
       racket: widget.racket,
       shoes: widget.shoes,
       shirtStyle: widget.shirtStyle,
-      statusNotifier: _loadStatus,
+      onExit: () {
+        if (mounted) Navigator.of(context).pop();
+      },
     );
   }
 
@@ -74,245 +67,67 @@ class _GameScreenState extends State<GameScreen> {
     game.showShotControls.dispose();
     game.shotPowerLabel.dispose();
     game.selectedShotLabel.dispose();
-    _loadStatus.dispose();
     super.dispose();
   }
 
-  void _handleTapUp(TapUpDetails details) {
-    game.movePlayerTo(
-      Vector2(details.localPosition.dx, details.localPosition.dy),
-    );
+  // ─────────────────────────────────────────────────
+  // INPUT  –  KEY FIX:
+  //
+  // The old code had BOTH onTapUp AND onPanStart.
+  // Flutter's gesture arena forces them to compete —
+  // it picks one and drops the other, so taps
+  // randomly fail to move the player.
+  //
+  // Fix: remove onTapUp entirely.
+  // A tap IS a pan with zero distance.
+  // onPanStart fires on every finger-down, even a tap.
+  // We call directMovePlayer on BOTH start and update
+  // so the player follows your finger in real-time.
+  // ─────────────────────────────────────────────────
+
+  void _handleTapDown(TapDownDetails d) {
+    game.directMovePlayer(d.localPosition.dx, d.localPosition.dy);
   }
 
-  void _handlePanStart(DragStartDetails details) {
-    _swipeStart = details.localPosition;
-    _swipeCurrent = details.localPosition;
+  void _handlePanStart(DragStartDetails d) {
+    _swipeStart = d.localPosition;
+    _swipeCurrent = d.localPosition;
+    // Immediate response on finger-down (works for taps too)
+    game.directMovePlayer(d.localPosition.dx, d.localPosition.dy);
   }
 
-  void _handlePanUpdate(DragUpdateDetails details) {
-    _swipeCurrent = details.localPosition;
+  void _handlePanUpdate(DragUpdateDetails d) {
+    _swipeCurrent = d.localPosition;
+    // Real-time finger tracking while dragging
+    game.directMovePlayer(d.localPosition.dx, d.localPosition.dy);
   }
 
-  void _handlePanEnd(DragEndDetails details) {
+  void _handlePanEnd(DragEndDetails _) {
     if (_swipeStart != null && _swipeCurrent != null) {
-      final distance = (_swipeCurrent! - _swipeStart!).distance;
-      game.setSwipePower(distance);
+      final dist = (_swipeCurrent! - _swipeStart!).distance;
+      // Only set shot power if it was a real swipe (not just a tap)
+      if (dist > 35) game.setSwipePower(dist);
     }
-    _swipeStart = null;
-    _swipeCurrent = null;
+    _swipeStart = _swipeCurrent = null;
   }
 
-  void _handlePanCancel() {
-    _swipeStart = null;
-    _swipeCurrent = null;
-  }
+  void _handlePanCancel() => _swipeStart = _swipeCurrent = null;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTapUp: _handleTapUp,
-              onPanStart: _handlePanStart,
-              onPanUpdate: _handlePanUpdate,
-              onPanEnd: _handlePanEnd,
-              onPanCancel: _handlePanCancel,
-              child: Container(
-                color: widget.courtColor.withValues(alpha: 0.4),
-                child: SizedBox.expand(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: GameWidget(
-                          game: game,
-                          loadingBuilder:
-                              (context) => const Center(
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 24,
-                        left: 0,
-                        right: 0,
-                        child: ValueListenableBuilder<String>(
-                          valueListenable: _loadStatus,
-                          builder: (context, status, child) {
-                            return Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  status,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Shot controls
-          Positioned(
-            bottom: 40,
-            left: 20,
-            child: ValueListenableBuilder<bool>(
-              valueListenable: game.showShotControls,
-              builder: (context, showShotControls, child) {
-                if (!showShotControls) {
-                  return const SizedBox.shrink();
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _buildShotButton(
-                          'Normal',
-                          Colors.blue,
-                          () => game.selectShot('Flat'),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildShotButton(
-                          'Slice',
-                          Colors.orange,
-                          () => game.selectShot('Slice'),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildShotButton(
-                          'Lob',
-                          Colors.lightBlue,
-                          () => game.selectShot('Lob'),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildShotButton(
-                          'Power',
-                          Colors.redAccent,
-                          () => game.selectShot('Power'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ValueListenableBuilder<String>(
-                      valueListenable: game.shotPowerLabel,
-                      builder: (context, powerLabel, child) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            'Power: $powerLabel',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          // Sprint Button (Bottom Right)
-          Positioned(
-            bottom: 40,
-            right: 30,
-            child: GestureDetector(
-              onPanDown: (_) => game.setSprinting(true),
-              onPanCancel: () => game.setSprinting(false),
-              onPanEnd: (_) => game.setSprinting(false),
-              child: Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: Colors.blueAccent.withValues(alpha: 0.7),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.flash_on,
-                  color: Colors.white,
-                  size: 36,
-                ),
-              ),
-            ),
-          ),
-          // Pause button in top-right corner
-          Positioned(
-            top: 40,
-            right: 20,
-            child: GestureDetector(
-              onTap: () => game.togglePause(),
-              child: Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: const Icon(Icons.pause, color: Colors.white, size: 28),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShotButton(String label, Color color, VoidCallback onTap) {
+  Widget _shotBtn(String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 60,
-        height: 60,
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.85),
+          color: color.withValues(alpha: 0.9),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 1.5),
+          border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -322,7 +137,7 @@ class _GameScreenState extends State<GameScreen> {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -330,22 +145,227 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: _handleTapDown,
+        onPanStart: _handlePanStart,
+        onPanUpdate: _handlePanUpdate,
+        onPanEnd: _handlePanEnd,
+        onPanCancel: _handlePanCancel,
+        child: Stack(
+          children: [
+            // 1. Game canvas fills screen
+            Positioned.fill(
+              child: GameWidget(
+                game: game,
+                loadingBuilder: (ctx) => Container(
+                  color: widget.courtColor,
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Loading court...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // 2. Shot-type buttons — bottom-left
+            Positioned(
+              bottom: 44,
+              left: 16,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: game.showShotControls,
+                builder: (ctx, show, _) {
+                  if (!show) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _shotBtn('Flat', Colors.blue,
+                              () => game.selectShot('Flat')),
+                          const SizedBox(width: 8),
+                          _shotBtn('Slice', Colors.orange,
+                              () => game.selectShot('Slice')),
+                          const SizedBox(width: 8),
+                          _shotBtn('Lob', Colors.lightBlue,
+                              () => game.selectShot('Lob')),
+                          const SizedBox(width: 8),
+                          _shotBtn('Power', Colors.redAccent,
+                              () => game.selectShot('Power')),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ValueListenableBuilder<String>(
+                        valueListenable: game.shotPowerLabel,
+                        builder: (ctx2, pwr, _) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.bolt,
+                                  color: Colors.yellowAccent, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Power: $pwr',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            // 3. Sprint button — bottom-right
+            Positioned(
+              bottom: 44,
+              right: 24,
+              child: GestureDetector(
+                onPanDown: (_) => game.setSprinting(true),
+                onPanCancel: () => game.setSprinting(false),
+                onPanEnd: (_) => game.setSprinting(false),
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: Colors.deepOrangeAccent.withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.flash_on, color: Colors.white, size: 28),
+                      Text(
+                        'SPRINT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 4. Pause button — top-right
+            Positioned(
+              top: 44,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => game.togglePause(),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.35)),
+                  ),
+                  child: const Icon(Icons.pause,
+                      color: Colors.white, size: 28),
+                ),
+              ),
+            ),
+
+            // 5. Current shot indicator — top-left
+            Positioned(
+              top: 44,
+              left: 16,
+              child: ValueListenableBuilder<String>(
+                valueListenable: game.selectedShotLabel,
+                builder: (ctx, shot, _) => Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.sports_tennis,
+                          color: Colors.yellowAccent, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        shot,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
+// ─────────────────────────────────────────────────────────
+//  Flame Game
+// ─────────────────────────────────────────────────────────
 class TennisGame extends FlameGame with HasCollisionDetection {
   final Color courtColor;
   final String courtName;
-  final VoidCallback onExit;
   final String playerName;
   final int age;
   final String difficulty;
   final String? racket;
   final String? shoes;
   final String? shirtStyle;
-  final ValueNotifier<String>? statusNotifier;
+  final VoidCallback? onExit;
 
-  // Shot mechanics
-  String nextShotType = 'Flat'; // 'Flat', 'Lob', 'Slice', 'Power'
+  String nextShotType = 'Flat';
   final ValueNotifier<bool> showShotControls = ValueNotifier(false);
   final ValueNotifier<String> shotPowerLabel = ValueNotifier('Normal');
   final ValueNotifier<String> selectedShotLabel = ValueNotifier('Flat');
@@ -353,33 +373,36 @@ class TennisGame extends FlameGame with HasCollisionDetection {
 
   bool isSprinting = false;
 
-  // Score tracking
   int bottomPlayerScore = 0;
   int topPlayerScore = 0;
 
-  // Game state
   bool isPaused = false;
   bool isGameOver = false;
 
-  // Component references
-  late Ball ball;
-  late Player topPlayer;
-  late Player bottomPlayer;
-  late ScoreDisplay scoreDisplay;
-  PauseMenu? pauseMenu;
-  GameOverScreen? gameOverScreen;
+  Ball? _ball;
+  Player? _topPlayer;
+  Player? _bottomPlayer;
+  ScoreDisplay? _scoreDisplay;
+  PauseMenu? _pauseMenu;
+  GameOverScreen? _gameOverScreen;
+
+  Ball get ball => _ball!;
+  Player get topPlayer => _topPlayer!;
+  Player get bottomPlayer => _bottomPlayer!;
+  ScoreDisplay get scoreDisplay => _scoreDisplay!;
+
+  bool _loaded = false;
 
   TennisGame({
     required this.courtColor,
     required this.courtName,
-    required this.onExit,
     required this.playerName,
     required this.age,
     required this.difficulty,
     this.racket,
     this.shoes,
     this.shirtStyle,
-    this.statusNotifier,
+    this.onExit,
   });
 
   @override
@@ -387,94 +410,63 @@ class TennisGame extends FlameGame with HasCollisionDetection {
 
   @override
   Future<void> onLoad() async {
-    statusNotifier?.value = 'Loading game...';
     await super.onLoad();
-
-    // Add court background (bottom layer)
     add(Court(color: courtColor));
-
-    // Add referee seat
     add(RefereeSeat());
-
-    // Add net in the middle
     add(Net());
-
-    // Add players
-    bottomPlayer = Player(
-      isBottom: true,
-      difficulty: difficulty,
-      racket: racket,
-      shoes: shoes,
-    );
-    topPlayer = Player(
-      isBottom: false,
-      difficulty: difficulty,
-      racket: racket,
-      shoes: shoes,
-    );
-    add(bottomPlayer);
-    add(topPlayer);
-
-    // Add score display
-    scoreDisplay = ScoreDisplay();
-    add(scoreDisplay);
-
-    // Add ball LAST (top layer - most visible)
-    ball = Ball();
-    add(ball);
-
-    statusNotifier?.value = 'Game loaded';
-    debugPrint('$courtName court loaded!');
+    _bottomPlayer = Player(
+        isBottom: true, difficulty: difficulty, racket: racket, shoes: shoes);
+    _topPlayer = Player(
+        isBottom: false, difficulty: difficulty, racket: racket, shoes: shoes);
+    add(_bottomPlayer!);
+    add(_topPlayer!);
+    _scoreDisplay = ScoreDisplay();
+    add(_scoreDisplay!);
+    _ball = Ball();
+    add(_ball!);
+    _loaded = true;
+    debugPrint('$courtName TennisGame loaded ✓');
   }
 
   @override
   void update(double dt) {
+    if (!_loaded) return;
     super.update(dt);
-
-    // Skip AI logic if paused or game over
     if (isPaused || isGameOver) return;
-
-    // AI logic - make top player follow the ball with smooth movement
-    topPlayer.moveTowardsBall(ball.position, dt);
-
-    final shouldShowShots =
-        ball.position.y > size.y * 0.35 && ball.velocity.y > 0;
-    if (showShotControls.value != shouldShowShots) {
-      showShotControls.value = shouldShowShots;
+    _topPlayer?.moveTowardsBall(_ball!.position, dt);
+    final shouldShow = _ball != null &&
+        _ball!.position.y > size.y * 0.4 &&
+        _ball!.velocity.y > 0;
+    if (showShotControls.value != shouldShow) {
+      showShotControls.value = shouldShow;
     }
   }
 
-  // KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
-  //   if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-  //     if (!isGameOver) {
-  //       togglePause();
-  //     }
-  //     return KeyEventResult.handled;
-  //   }
-  //   return KeyEventResult.ignored;
-  // }
-  // Toggle pause state
+  // Direct finger-tracking movement — called on every pan event
+  void directMovePlayer(double fingerX, double fingerY) {
+    if (isPaused || isGameOver) return;
+    if (_bottomPlayer == null || size.x <= 80 || size.y <= 80) return;
+    _bottomPlayer!.setDirectTarget(fingerX, fingerY, size);
+  }
+
+  void movePlayerTo(Vector2 rawPos) =>
+      directMovePlayer(rawPos.x, rawPos.y);
+
   void togglePause() {
-    if (isGameOver) return; // Can't pause when game over
-
+    if (isGameOver) return;
     isPaused = !isPaused;
-
     if (isPaused) {
-      pauseMenu = PauseMenu();
-      add(pauseMenu!);
+      _pauseMenu = PauseMenu();
+      add(_pauseMenu!);
     } else {
-      if (pauseMenu != null) {
-        remove(pauseMenu!);
-        pauseMenu = null;
+      if (_pauseMenu != null) {
+        remove(_pauseMenu!);
+        _pauseMenu = null;
       }
     }
-    //
-    // debugPrint('Game ${isPaused ? 'paused' : 'resumed'}');
   }
 
-  void setSprinting(bool sprinting) {
-    isSprinting = sprinting;
-  }
+  void setSprinting(bool s) => isSprinting = s;
 
   void selectShot(String shot) {
     nextShotType = shot;
@@ -482,68 +474,46 @@ class TennisGame extends FlameGame with HasCollisionDetection {
   }
 
   void setSwipePower(double distance) {
-    if (distance < 80) {
-      shotPower = 0.9;
+    if (distance < 60) {
+      shotPower = 0.85;
       shotPowerLabel.value = 'Weak';
-    } else if (distance < 180) {
+    } else if (distance < 150) {
       shotPower = 1.0;
       shotPowerLabel.value = 'Normal';
-    } else if (distance < 280) {
+    } else if (distance < 260) {
       shotPower = 1.2;
       shotPowerLabel.value = 'Strong';
     } else {
-      shotPower = 1.4;
-      shotPowerLabel.value = 'Power';
+      shotPower = 1.5;
+      shotPowerLabel.value = 'Power!';
     }
   }
 
-  void movePlayerTo(Vector2 rawPosition) {
-    if (size.x > 80 && size.y > 80) {
-      final targetX = rawPosition.x.clamp(40.0, size.x - 40.0);
-      final targetY = rawPosition.y.clamp(size.y / 2 + 20.0, size.y - 20.0);
-      bottomPlayer.setTarget(Vector2(targetX, targetY));
-    }
-  }
-
-  // Check if game is over (someone won)
   void checkGameOver() {
     bool playerWon = false;
     bool aiWon = false;
-
-    // Win condition: 4+ points with 2+ point lead
     if (bottomPlayerScore >= 4 && bottomPlayerScore - topPlayerScore >= 2) {
       playerWon = true;
     }
     if (topPlayerScore >= 4 && topPlayerScore - bottomPlayerScore >= 2) {
       aiWon = true;
     }
-
-    if (playerWon || aiWon) {
-      showGameOverScreen(playerWon);
-    }
+    if (playerWon || aiWon) showGameOverScreen(playerWon);
   }
 
-  // Show game over screen and save to database
   void showGameOverScreen(bool playerWon) {
     isGameOver = true;
-    isPaused = true; // Stop the game
-
-    // Save result to database
+    isPaused = true;
     _saveGameResult(playerWon);
-
-    // Show game over overlay
-    gameOverScreen = GameOverScreen(
+    _gameOverScreen = GameOverScreen(
       playerWon: playerWon,
       playerScore: bottomPlayerScore,
       aiScore: topPlayerScore,
       playerName: playerName,
     );
-    add(gameOverScreen!);
-    //
-    // debugPrint('Game Over! ${playerWon ? 'Player' : 'AI'} wins!');
+    add(_gameOverScreen!);
   }
 
-  // Save game result to SQLite database
   Future<void> _saveGameResult(bool playerWon) async {
     final result = GameResult(
       playerScore: bottomPlayerScore,
@@ -554,63 +524,48 @@ class TennisGame extends FlameGame with HasCollisionDetection {
       playerName: playerName,
       difficulty: difficulty,
     );
-
     await DatabaseHelper.instance.insertGameResult(result);
-    debugPrint('Game result saved to database');
   }
 
-  // Play again - reset everything
   void playAgain() {
     bottomPlayerScore = 0;
     topPlayerScore = 0;
     isGameOver = false;
     isPaused = false;
-    ball.resetBall();
-
-    // Remove game over screen
-    if (gameOverScreen != null) {
-      remove(gameOverScreen!);
-      gameOverScreen = null;
+    _bottomPlayer?.resetPlayer();
+    _topPlayer?.resetPlayer();
+    _ball?.resetBall();
+    if (_gameOverScreen != null) {
+      remove(_gameOverScreen!);
+      _gameOverScreen = null;
     }
-
-    debugPrint('Starting new game!');
   }
 
-  // Restart the game (from pause menu)
   void restartGame() {
     bottomPlayerScore = 0;
     topPlayerScore = 0;
-    ball.resetBall();
-
-    // Unpause and remove menu
+    _bottomPlayer?.resetPlayer();
+    _topPlayer?.resetPlayer();
+    _ball?.resetBall();
     if (isPaused) {
       isPaused = false;
-      if (pauseMenu != null) {
-        remove(pauseMenu!);
-        pauseMenu = null;
+      if (_pauseMenu != null) {
+        remove(_pauseMenu!);
+        _pauseMenu = null;
       }
     }
-
-    debugPrint('Game restarted!');
   }
 
-  // Exit to home screen
-  void exitGame() {
-    onExit();
-  }
+  void exitGame() => onExit?.call();
 
-  // Helper methods to play sound safely
   void playSound(String filename) {
     try {
       FlameAudio.play(filename);
-    } catch (e) {
-      // Ignore missing audio files since user needs to add them
-    }
+    } catch (_) {}
   }
 
-  // Announce score when point is scored
   void announceScore(bool playerScored) {
     playSound('score.mp3');
-    scoreDisplay.announceScore();
+    _scoreDisplay?.announceScore();
   }
 }
