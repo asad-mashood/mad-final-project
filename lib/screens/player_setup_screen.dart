@@ -104,6 +104,33 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
     );
   }
 
+  Future<void> _saveProfileOnly() async {
+    final name =
+        _nameController.text.trim().isEmpty
+            ? 'Guest'
+            : _nameController.text.trim();
+    final age = int.tryParse(_ageController.text.trim()) ?? 18;
+    final profile = PlayerProfile(
+      playerName: name,
+      age: age,
+      difficulty: _selectedDifficulty,
+      racket: _selectedRacket,
+      shoes: _selectedShoes,
+      shirtStyle: _selectedShirtStyle,
+    );
+
+    await ProfileManager.instance.saveProfile(profile);
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Profile saved successfully!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -297,7 +324,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                       ),
                       const SizedBox(height: 15),
                       const Text(
-                        'EQUIPMENT',
+                        'SELECT RACKET',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 18,
@@ -306,86 +333,106 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                         ),
                       ),
                       const SizedBox(height: 15),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedRacket,
-                                  isExpanded: true,
-                                  dropdownColor: Colors.white,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  items:
-                                      _rackets.map((String racket) {
-                                        return DropdownMenuItem<String>(
-                                          value: racket,
-                                          child: Text(racket),
-                                        );
-                                      }).toList(),
-                                  onChanged: (String? newValue) {
-                                    if (newValue != null) {
-                                      setState(() {
-                                        _selectedRacket = newValue;
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedRacket,
+                            isExpanded: true,
+                            dropdownColor: Colors.white,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w500,
                             ),
+                            items:
+                                _rackets.map((String racket) {
+                                  return DropdownMenuItem<String>(
+                                    value: racket,
+                                    child: Text(racket),
+                                  );
+                                }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedRacket = newValue;
+                                });
+                              }
+                            },
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedShoes,
-                                  isExpanded: true,
-                                  dropdownColor: Colors.white,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  items:
-                                      _shoes.map((String shoe) {
-                                        return DropdownMenuItem<String>(
-                                          value: shoe,
-                                          child: Text(shoe),
-                                        );
-                                      }).toList(),
-                                  onChanged: (String? newValue) {
-                                    if (newValue != null) {
-                                      setState(() {
-                                        _selectedShoes = newValue;
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      const Text(
+                        'SELECT SHOES',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedShoes,
+                            isExpanded: true,
+                            dropdownColor: Colors.white,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w500,
                             ),
+                            items:
+                                _shoes.map((String shoe) {
+                                  return DropdownMenuItem<String>(
+                                    value: shoe,
+                                    child: Text(shoe),
+                                  );
+                                }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedShoes = newValue;
+                                });
+                              }
+                            },
                           ),
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 40),
+                      ElevatedButton(
+                        onPressed: _saveProfileOnly,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF1B5E20),
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            side: const BorderSide(color: Color(0xFFFFEB3B), width: 2),
+                          ),
+                          elevation: 3,
+                        ),
+                        child: const Text(
+                          'SAVE PROFILE',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
                       ElevatedButton(
                         onPressed: _startGame,
                         style: ElevatedButton.styleFrom(
@@ -398,7 +445,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                           elevation: 5,
                         ),
                         child: const Text(
-                          'SAVE & CONTINUE',
+                          'SAVE & PLAY MATCH',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,

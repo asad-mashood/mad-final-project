@@ -415,9 +415,21 @@ class TennisGame extends FlameGame with HasCollisionDetection {
     add(RefereeSeat());
     add(Net());
     _bottomPlayer = Player(
-        isBottom: true, difficulty: difficulty, racket: racket, shoes: shoes);
+      isBottom: true,
+      difficulty: difficulty,
+      racket: racket,
+      shoes: shoes,
+      shirtStyle: shirtStyle,
+      age: age,
+    );
     _topPlayer = Player(
-        isBottom: false, difficulty: difficulty, racket: racket, shoes: shoes);
+      isBottom: false,
+      difficulty: difficulty,
+      racket: racket,
+      shoes: shoes,
+      shirtStyle: shirtStyle,
+      age: age,
+    );
     add(_bottomPlayer!);
     add(_topPlayer!);
     _scoreDisplay = ScoreDisplay();
