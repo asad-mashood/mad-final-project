@@ -5,6 +5,8 @@ class GameResult {
   final String result; // "WIN" or "LOSS"
   final int createdAt; // Unix timestamp in milliseconds
   final String courtName;
+  final String playerName;
+  final String difficulty;
 
   GameResult({
     this.id,
@@ -13,6 +15,8 @@ class GameResult {
     required this.result,
     required this.createdAt,
     required this.courtName,
+    this.playerName = 'Player',
+    this.difficulty = 'Medium',
   });
 
   // Convert to Map for database insertion
@@ -24,6 +28,8 @@ class GameResult {
       'result': result,
       'createdAt': createdAt,
       'courtName': courtName,
+      'playerName': playerName,
+      'difficulty': difficulty,
     };
   }
 
@@ -36,6 +42,8 @@ class GameResult {
       result: map['result'] as String,
       createdAt: map['createdAt'] as int,
       courtName: map['courtName'] as String,
+      playerName: map['playerName'] as String? ?? 'Player',
+      difficulty: map['difficulty'] as String? ?? 'Medium',
     );
   }
 

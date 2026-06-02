@@ -1,8 +1,24 @@
+// screens/court_selection_screen.dart
 import 'package:flutter/material.dart';
 import 'animation_screen.dart';
 
 class CourtSelectionScreen extends StatelessWidget {
-  const CourtSelectionScreen({super.key});
+  final String playerName;
+  final int age;
+  final String difficulty;
+  final String? racket;
+  final String? shoes;
+  final String? shirtStyle;
+
+  const CourtSelectionScreen({
+    super.key,
+    required this.playerName,
+    required this.age,
+    required this.difficulty,
+    this.racket,
+    this.shoes,
+    this.shirtStyle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -12,10 +28,7 @@ class CourtSelectionScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF1A1A2E),
-              const Color(0xFF16213E),
-            ],
+            colors: [const Color(0xFF1A1A2E), const Color(0xFF16213E)],
           ),
         ),
         child: SafeArea(
@@ -27,7 +40,11 @@ class CourtSelectionScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     const SizedBox(width: 10),
@@ -60,10 +77,17 @@ class CourtSelectionScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AnimationScreen(
-                                courtColor: Color(0xFF2E7D32),
-                                courtName: 'Wimbledon',
-                              ),
+                              builder:
+                                  (context) => AnimationScreen(
+                                    courtColor: const Color(0xFF2E7D32),
+                                    courtName: 'Wimbledon',
+                                    playerName: playerName,
+                                    age: age,
+                                    difficulty: difficulty,
+                                    racket: racket,
+                                    shoes: shoes,
+                                    shirtStyle: shirtStyle,
+                                  ),
                             ),
                           );
                         },
@@ -80,10 +104,17 @@ class CourtSelectionScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AnimationScreen(
-                                courtColor: Color(0xFFD84315),
-                                courtName: 'French Open',
-                              ),
+                              builder:
+                                  (context) => AnimationScreen(
+                                    courtColor: const Color(0xFFD84315),
+                                    courtName: 'French Open',
+                                    playerName: playerName,
+                                    age: age,
+                                    difficulty: difficulty,
+                                    racket: racket,
+                                    shoes: shoes,
+                                    shirtStyle: shirtStyle,
+                                  ),
                             ),
                           );
                         },
@@ -100,10 +131,17 @@ class CourtSelectionScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AnimationScreen(
-                                courtColor: Color(0xFF0D47A1),
-                                courtName: 'Arthur Ashe',
-                              ),
+                              builder:
+                                  (context) => AnimationScreen(
+                                    courtColor: const Color(0xFF0D47A1),
+                                    courtName: 'Arthur Ashe',
+                                    playerName: playerName,
+                                    age: age,
+                                    difficulty: difficulty,
+                                    racket: racket,
+                                    shoes: shoes,
+                                    shirtStyle: shirtStyle,
+                                  ),
                             ),
                           );
                         },
@@ -120,10 +158,44 @@ class CourtSelectionScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AnimationScreen(
-                                courtColor: Color(0xFFBF360C),
-                                courtName: 'Roland Garros',
-                              ),
+                              builder:
+                                  (context) => AnimationScreen(
+                                    courtColor: const Color(0xFFBF360C),
+                                    courtName: 'Roland Garros',
+                                    playerName: playerName,
+                                    age: age,
+                                    difficulty: difficulty,
+                                    racket: racket,
+                                    shoes: shoes,
+                                    shirtStyle: shirtStyle,
+                                  ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      CourtCard(
+                        courtName: 'Australian Open',
+                        location: 'Melbourne, Australia',
+                        courtType: 'Hard Court',
+                        courtColor: const Color(0xFF039BE5), // Light blue
+                        icon: Icons.stadium,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => AnimationScreen(
+                                    courtColor: const Color(0xFF039BE5),
+                                    courtName: 'Australian Open',
+                                    playerName: playerName,
+                                    age: age,
+                                    difficulty: difficulty,
+                                    racket: racket,
+                                    shoes: shoes,
+                                    shirtStyle: shirtStyle,
+                                  ),
                             ),
                           );
                         },
@@ -170,7 +242,7 @@ class CourtCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: courtColor.withOpacity(0.4),
+              color: courtColor.withValues(alpha: 0.4),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -191,11 +263,7 @@ class CourtCard extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    icon,
-                    size: 50,
-                    color: Colors.white,
-                  ),
+                  Icon(icon, size: 50, color: Colors.white),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -203,7 +271,7 @@ class CourtCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

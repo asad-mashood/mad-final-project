@@ -5,140 +5,177 @@ import 'package:flutter/material.dart';
 import '../screens/game_screen.dart';
 import 'player.dart';
 
-class Ball extends CircleComponent with HasGameRef<TennisGame>, CollisionCallbacks {
-  Vector2 velocity = Vector2(150, -300);
+class Ball extends CircleComponent
+    with HasGameReference<TennisGame>, CollisionCallbacks {
+  Vector2 velocity = Vector2(120, -240);
 
-  Ball()
-      : super(
-    radius: 15,
-    anchor: Anchor.center,
-  );
+  // 3D physics simulation
+  double z = 50.0; // Height from ground
+  double zVelocity = 0.0;
+  final double gravity = -800.0;
+
+  // Court modifiers
+  double bounceFactor = 0.7;
+  double speedModifier = 1.0;
+
+  Ball() : super(radius: 10, anchor: Anchor.center);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Set ball color
-    paint = Paint()
-      ..color = const Color(0xFFFFEB3B)
-      ..style = PaintingStyle.fill;
+    // Set court modifiers
+    if (game.courtName == 'Grass Court' || game.courtName == 'Wimbledon') {
+      bounceFactor = 0.5; // Low bounce
+      speedModifier = 1.0; // Moderate speed
+    } else if (game.courtName == 'Clay Court' ||
+        game.courtName == 'Roland Garros' ||
+        game.courtName == 'French Open') {
+      bounceFactor = 0.85; // High bounce
+      speedModifier = 0.8; // Slower speed
+    } else {
+      // Hard court
+      bounceFactor = 0.7;
+      speedModifier = 0.95; // Slightly slower hard court speed
+    }
 
-    // Position ball in center
-    position = gameRef.size / 2;
-
-    // Add collision detection
+    paint =
+        Paint()
+          ..color = const Color(0xFFFFEB3B)
+          ..style = PaintingStyle.fill;
+    position = game.size / 2;
     add(CircleHitbox());
-
-    debugPrint('Ball loaded at: $position with radius: $radius');
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.isPaused || game.isGameOver) return;
 
-    // Don't move if game is paused or game over
-    if (gameRef.isPaused || gameRef.isGameOver) return;
+    // XY Movement
+    position += velocity * speedModifier * dt;
 
-    // Store previous position for collision detection
-    final previousY = position.y;
-    
-    // Move ball
-    position += velocity * dt;
+    // Z Movement (Gravity and Bounce)
+    zVelocity += gravity * dt;
+    z += zVelocity * dt;
+
+    if (z <= 0) {
+      z = 0;
+      zVelocity = -zVelocity * bounceFactor;
+    }
+
+    // Visual Scaling based on Z height (higher = bigger)
+    scale = Vector2.all(1.0 + (z / 200.0));
 
     // Bounce off left and right walls
-    if (position.x - radius <= 0 || position.x + radius >= gameRef.size.x) {
+    if (position.x - radius <= 0 || position.x + radius >= game.size.x) {
       velocity.x = -velocity.x;
-      position.x = position.x.clamp(radius, gameRef.size.x - radius);
+      position.x = position.x.clamp(radius, game.size.x - radius);
     }
 
-    // Continuous collision detection for paddles (prevents tunneling)
-    // Check bottom player paddle
-    final bottomPaddle = gameRef.bottomPlayer;
-    final bottomPaddleTop = bottomPaddle.position.y - bottomPaddle.size.y / 2;
-    final bottomPaddleLeft = bottomPaddle.position.x - bottomPaddle.size.x / 2;
-    final bottomPaddleRight = bottomPaddle.position.x + bottomPaddle.size.x / 2;
-    
-    // If ball crossed the paddle's y-line this frame (moving down)
-    if (velocity.y > 0 && previousY + radius < bottomPaddleTop && position.y + radius >= bottomPaddleTop) {
-      // Check if ball is within paddle's x range
-      if (position.x >= bottomPaddleLeft - radius && position.x <= bottomPaddleRight + radius) {
-        // Collision detected - bounce!
-        velocity.y = -velocity.y.abs(); // Ensure it goes up
-        position.y = bottomPaddleTop - radius - 2;
-        
-        // Add spin based on hit position
-        final hitPosition = position.x - bottomPaddle.position.x;
-        velocity.x += hitPosition * 3;
-        velocity.x = velocity.x.clamp(-400.0, 400.0);
-      }
-    }
-
-    // Check top player paddle
-    final topPaddle = gameRef.topPlayer;
-    final topPaddleBottom = topPaddle.position.y + topPaddle.size.y / 2;
-    final topPaddleLeft = topPaddle.position.x - topPaddle.size.x / 2;
-    final topPaddleRight = topPaddle.position.x + topPaddle.size.x / 2;
-    
-    // If ball crossed the paddle's y-line this frame (moving up)
-    if (velocity.y < 0 && previousY - radius > topPaddleBottom && position.y - radius <= topPaddleBottom) {
-      // Check if ball is within paddle's x range
-      if (position.x >= topPaddleLeft - radius && position.x <= topPaddleRight + radius) {
-        // Collision detected - bounce!
-        velocity.y = velocity.y.abs(); // Ensure it goes down
-        position.y = topPaddleBottom + radius + 2;
-        
-        // Add spin based on hit position
-        final hitPosition = position.x - topPaddle.position.x;
-        velocity.x += hitPosition * 3;
-        velocity.x = velocity.x.clamp(-400.0, 400.0);
-      }
-    }
-
-    // Check if ball went out of bounds (scoring)
+    // Scoring
     if (position.y - radius <= 0) {
-      gameRef.bottomPlayerScore++;
-      gameRef.announceScore(true); // Player scored
-      debugPrint('Player scored! Score: ${gameRef.bottomPlayerScore} - ${gameRef.topPlayerScore}');
-      gameRef.checkGameOver(); // Check if game is over
-      if (!gameRef.isGameOver) {
-        resetBall();
-      }
+      game.bottomPlayerScore++;
+      game.announceScore(true);
+      game.checkGameOver();
+      if (!game.isGameOver) resetBall();
     }
-
-    if (position.y + radius >= gameRef.size.y) {
-      gameRef.topPlayerScore++;
-      gameRef.announceScore(false); // AI scored
-      debugPrint('AI scored! Score: ${gameRef.topPlayerScore} - ${gameRef.bottomPlayerScore}');
-      gameRef.checkGameOver(); // Check if game is over
-      if (!gameRef.isGameOver) {
-        resetBall();
-      }
+    if (position.y + radius >= game.size.y) {
+      game.topPlayerScore++;
+      game.announceScore(false);
+      game.checkGameOver();
+      if (!game.isGameOver) resetBall();
     }
   }
 
   void resetBall() {
-    position = gameRef.size / 2;
+    position = game.size / 2;
+    z = 100.0; // Start high for a "serve" drop
+    zVelocity = 200.0;
     velocity = Vector2(
-      (velocity.x > 0 ? 1 : -1) * 150,
-      (velocity.y > 0 ? 1 : -1) * 300,
+      (velocity.x > 0 ? 1 : -1) * 120,
+      (velocity.y > 0 ? 1 : -1) * 240,
     );
   }
 
   @override
   void onCollisionStart(
-      Set<Vector2> intersectionPoints,
-      PositionComponent other,
-      ) {
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
     super.onCollisionStart(intersectionPoints, other);
 
     if (other is Player) {
-      velocity.y = -velocity.y;
+      // If ball is too high, player misses it
+      if (z > 100) return; // Too high to hit
 
-      final paddleCenter = other.position.x;
-      final hitPosition = position.x - paddleCenter;
-      velocity.x += hitPosition * 3;
+      final hitDirection = other.isBottom ? -1 : 1;
 
-      velocity.x = velocity.x.clamp(-400, 400);
+      // Play hit sound safely
+      try {
+        game.playSound('hit.mp3');
+      } catch (e) {
+        // Ignore missing or playback errors.
+      }
+
+      // Calculate power based on player stamina/sprint/stats and swipe power
+      double powerMultiplier = other.stats.power * game.shotPower;
+      if (other.stamina > 20 && other.game.isSprinting && other.isBottom) {
+        powerMultiplier *= 1.2; // Extra power when sprinting
+      } else if (other.stamina < 10) {
+        powerMultiplier *= 0.8; // Weak shot when exhausted
+      }
+
+      // Timing assist from player zone
+      final hitDistance = game.ball.position.distanceTo(other.position);
+      if (other.isBottom) {
+        if (hitDistance < 60) {
+          powerMultiplier *= 1.15;
+        } else if (hitDistance < 100) {
+          powerMultiplier *= 1.05;
+        }
+      }
+
+      // Add spin based on hit position
+      final hitPosition = position.x - other.position.x;
+      velocity.x += hitPosition * 2.0;
+      velocity.x += (game.size.x / 2 - position.x) * 0.01; // small aim assist
+      velocity.x = velocity.x.clamp(-350.0, 350.0);
+
+      // Shot Types (Only bottom player selects shots manually)
+      String shotType = 'Flat';
+      if (other.isBottom) {
+        shotType = game.nextShotType;
+        game.nextShotType = 'Flat'; // Reset after hit
+        game.shotPower = 1.0;
+        game.shotPowerLabel.value = 'Normal';
+      }
+
+      switch (shotType) {
+        case 'Lob':
+          velocity.y = hitDirection * 220.0 * powerMultiplier;
+          zVelocity = 600.0; // High arc
+          bounceFactor = 0.75;
+          break;
+        case 'Slice':
+          velocity.y = hitDirection * 260.0 * powerMultiplier;
+          zVelocity = 140.0; // Low arc
+          bounceFactor = 0.35; // Barely bounces
+          break;
+        case 'Power':
+          velocity.y = hitDirection * 460.0 * powerMultiplier;
+          zVelocity = 280.0; // hard drive
+          bounceFactor = 0.9;
+          break;
+        case 'Flat':
+        default:
+          velocity.y = hitDirection * 320.0 * powerMultiplier;
+          zVelocity = 330.0; // Normal arc
+          bounceFactor = 0.7;
+          break;
+      }
+
+      velocity.y = velocity.y.clamp(-600.0, 600.0);
 
       if (other.isBottom) {
         position.y = other.position.y - other.size.y / 2 - radius - 2;
@@ -150,12 +187,38 @@ class Ball extends CircleComponent with HasGameRef<TennisGame>, CollisionCallbac
 
   @override
   void render(Canvas canvas) {
+    // Draw shadow
+    if (z > 0) {
+      final shadowPaint = Paint()..color = Colors.black.withValues(alpha: 0.3);
+      final shadowOffset = Offset(
+        z * 0.2,
+        z * 0.5,
+      ); // Offset shadow based on height
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: shadowOffset,
+          width: radius * 2,
+          height: radius * 1.5,
+        ),
+        shadowPaint,
+      );
+    }
+
     super.render(canvas);
 
-    // Add tennis ball white curves on top
-    final linePaint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
+    final linePaint =
+        Paint()
+          ..color = const Color(0xFFFFFFFF)
+          ..strokeWidth = 2.0
+          ..style = PaintingStyle.stroke;
+
+    // Simple tennis ball curves
+    canvas.drawArc(
+      Rect.fromLTWH(-radius, -radius / 2, radius * 1.5, radius * 1.5),
+      0,
+      1.5,
+      false,
+      linePaint,
+    );
   }
 }

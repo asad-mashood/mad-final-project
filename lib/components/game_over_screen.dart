@@ -8,6 +8,7 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
   final bool playerWon;
   final int playerScore;
   final int aiScore;
+  final String playerName;
 
   late RRect playAgainButton;
   late RRect exitButton;
@@ -16,6 +17,7 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
     required this.playerWon,
     required this.playerScore,
     required this.aiScore,
+    required this.playerName,
   });
 
   @override
@@ -77,7 +79,7 @@ class GameOverScreen extends PositionComponent with HasGameRef<TennisGame>, TapC
       fontSize: 28,
       fontWeight: FontWeight.bold,
     );
-    final winnerText = playerWon ? 'YOU WIN!' : 'AI WINS!';
+    final winnerText = playerWon ? '${playerName.toUpperCase()} WINS!' : 'AI WINS!';
     final winnerSpan = TextSpan(text: winnerText, style: winnerStyle);
     final winnerPainter = TextPainter(
       text: winnerSpan,

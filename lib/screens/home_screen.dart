@@ -1,10 +1,99 @@
+﻿// screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../models/player_profile.dart';
+import '../utils/profile_manager.dart';
 import 'court_selection_screen.dart';
+import 'player_setup_screen.dart';
 import 'results_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  PlayerProfile? _profile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    await ProfileManager.instance.loadProfile();
+    setState(() {
+      _profile = ProfileManager.instance.profile;
+      _isLoading = false;
+    });
+  }
+
+  void _openProfileEditor() {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder:
+            (context, animation, secondaryAnimation) =>
+                const PlayerSetupScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 800),
+      ),
+    ).then((_) => _loadProfile());
+  }
+
+  void _startMatch() {
+    final profile =
+        _profile ??
+        PlayerProfile(
+          playerName: 'Guest',
+          age: 18,
+          difficulty: 'Medium',
+          racket: 'Beginner Racket',
+          shoes: 'Basic Shoes',
+          shirtStyle: 'Classic White',
+        );
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder:
+            (context, animation, secondaryAnimation) => CourtSelectionScreen(
+              playerName: profile.playerName,
+              age: profile.age,
+              difficulty: profile.difficulty,
+              racket: profile.racket,
+              shoes: profile.shoes,
+              shirtStyle: profile.shirtStyle,
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 800),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,18 +113,13 @@ class HomeScreen extends StatelessWidget {
         child: SafeArea(
           child: Stack(
             children: [
-              // Tennis court pattern overlay
               Positioned.fill(
-                child: CustomPaint(
-                  painter: TennisCourtPainter(),  // This needs the class below
-                ),
+                child: CustomPaint(painter: TennisCourtPainter()),
               ),
-              // Main content
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Tennis ball icon
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -43,7 +127,7 @@ class HomeScreen extends StatelessWidget {
                         color: Colors.yellow.shade600,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -56,8 +140,6 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 30),
-
-                    // Main Title
                     const Text(
                       'WIMBLEDON',
                       style: TextStyle(
@@ -90,38 +172,65 @@ class HomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 80),
-
-                    // Menu Buttons
+                    const SizedBox(height: 40),
+                    if (_isLoading)
+                      const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      )
+                    else if (_profile != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 36.0,
+                          vertical: 12,
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Profile: ${_profile!.playerName}, ${_profile!.age} yrs, ${_profile!.difficulty}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Racket: ${_profile!.racket}, Shoes: ${_profile!.shoes}, Shirt: ${_profile!.shirtStyle}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 36.0,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          'No saved profile yet. Set up your name, age, equipment and difficulty once, then start matches directly.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                      ),
+                    const SizedBox(height: 30),
                     _MenuButton(
-                      label: 'NEW GAME',
+                      label: _profile != null ? 'START MATCH' : 'PLAY GUEST',
                       icon: Icons.play_arrow,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => CourtSelectionScreen(),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                              // Slide transition
-                              const begin = Offset(1.0, 0.0); // Slide from right
-                              const end = Offset.zero;
-                              const curve = Curves.easeInOut;
-
-                              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                              var offsetAnimation = animation.drive(tween);
-
-                              return SlideTransition(
-                                position: offsetAnimation,
-                                child: child,
-                              );
-                            },
-                            transitionDuration: Duration(milliseconds: 800),
-                          ),
-                        );
-                      },
+                      onPressed: _startMatch,
                     ),
                     const SizedBox(height: 20),
-
+                    _MenuButton(
+                      label: 'PROFILE',
+                      icon: Icons.person,
+                      onPressed: _openProfileEditor,
+                    ),
+                    const SizedBox(height: 20),
                     _MenuButton(
                       label: 'PREVIOUS RESULTS',
                       icon: Icons.emoji_events,
@@ -129,25 +238,36 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => const ResultsScreen(),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    const ResultsScreen(),
+                            transitionsBuilder: (
+                              context,
+                              animation,
+                              secondaryAnimation,
+                              child,
+                            ) {
                               const begin = Offset(1.0, 0.0);
                               const end = Offset.zero;
                               const curve = Curves.easeInOut;
-                              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                              var tween = Tween(
+                                begin: begin,
+                                end: end,
+                              ).chain(CurveTween(curve: curve));
                               var offsetAnimation = animation.drive(tween);
                               return SlideTransition(
                                 position: offsetAnimation,
                                 child: child,
                               );
                             },
-                            transitionDuration: const Duration(milliseconds: 800),
+                            transitionDuration: const Duration(
+                              milliseconds: 800,
+                            ),
                           ),
                         );
                       },
                     ),
                     const SizedBox(height: 20),
-
                     _MenuButton(
                       label: 'EXIT',
                       icon: Icons.exit_to_app,
@@ -157,11 +277,8 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 30),
                     const Text(
-                      'reserved right by Muhammad asad FA23-BAI-039',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
+                      'reserved right by Muhammad Asad FA23-BAI-039',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),
@@ -194,7 +311,7 @@ class _MenuButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -207,10 +324,7 @@ class _MenuButton extends StatelessWidget {
           foregroundColor: const Color(0xFF1B5E20),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
-            side: const BorderSide(
-              color: Color(0xFFFFEB3B),
-              width: 3,
-            ),
+            side: const BorderSide(color: Color(0xFFFFEB3B), width: 3),
           ),
           elevation: 0,
         ),
@@ -234,54 +348,40 @@ class _MenuButton extends StatelessWidget {
   }
 }
 
-// THIS CLASS MUST BE IN THE SAME FILE
 class TennisCourtPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
+    final paint =
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.08)
+          ..style = PaintingStyle.fill;
 
-    // Draw horizontal lines (court lines)
-    for (int i = 0; i < 5; i++) {
-      final y = (size.height / 5) * i;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        paint,
-      );
+    for (var x = 0.0; x < size.width; x += 60) {
+      canvas.drawRect(Rect.fromLTWH(x, 0, 20, size.height), paint);
     }
 
-    // Draw vertical center line
+    final linePaint =
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.22)
+          ..strokeWidth = 2;
+
+    canvas.drawLine(
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      linePaint,
+    );
     canvas.drawLine(
       Offset(size.width / 2, 0),
       Offset(size.width / 2, size.height),
-      paint,
+      linePaint,
     );
-
-    // Draw service boxes (simplified)
-    final boxWidth = size.width * 0.3;
-    final boxHeight = size.height * 0.25;
-
     canvas.drawRect(
-      Rect.fromLTWH(
-        (size.width - boxWidth) / 2,
-        size.height * 0.25,
-        boxWidth,
-        boxHeight,
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2),
+        width: size.width * 0.9,
+        height: size.height * 0.9,
       ),
-      paint,
-    );
-
-    canvas.drawRect(
-      Rect.fromLTWH(
-        (size.width - boxWidth) / 2,
-        size.height * 0.5,
-        boxWidth,
-        boxHeight,
-      ),
-      paint,
+      linePaint,
     );
   }
 

@@ -1,4 +1,5 @@
 // screens/game_screen.dart
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import '../components/court.dart';
@@ -11,35 +12,205 @@ import '../components/pause_menu.dart';
 import '../components/game_over_screen.dart';
 import '../utils/database_helper.dart';
 import '../models/game_result.dart';
+import 'package:flame_audio/flame_audio.dart';
 
-class GameScreen extends StatelessWidget {
+class GameScreen extends StatefulWidget {
   final Color courtColor;
   final String courtName;
+  final String playerName;
+  final int age;
+  final String difficulty;
+  final String? racket;
+  final String? shoes;
+  final String? shirtStyle;
 
   const GameScreen({
     super.key,
     this.courtColor = const Color(0xFF2E7D32), // Default green (Wimbledon)
     this.courtName = 'Wimbledon',
+    required this.playerName,
+    required this.age,
+    required this.difficulty,
+    this.racket,
+    this.shoes,
+    this.shirtStyle,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final game = TennisGame(
-      courtColor: courtColor,
-      courtName: courtName,
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  late TennisGame game;
+  Offset? _swipeStart;
+  Offset? _swipeCurrent;
+
+  @override
+  void initState() {
+    super.initState();
+    game = TennisGame(
+      courtColor: widget.courtColor,
+      courtName: widget.courtName,
       context: context,
+      playerName: widget.playerName,
+      age: widget.age,
+      difficulty: widget.difficulty,
+      racket: widget.racket,
+      shoes: widget.shoes,
+      shirtStyle: widget.shirtStyle,
     );
-    
+  }
+
+  @override
+  void dispose() {
+    game.showShotControls.dispose();
+    game.shotPowerLabel.dispose();
+    game.selectedShotLabel.dispose();
+    super.dispose();
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    game.movePlayerTo(
+      Vector2(details.localPosition.dx, details.localPosition.dy),
+    );
+  }
+
+  void _handlePanStart(DragStartDetails details) {
+    _swipeStart = details.localPosition;
+    _swipeCurrent = details.localPosition;
+  }
+
+  void _handlePanUpdate(DragUpdateDetails details) {
+    _swipeCurrent = details.localPosition;
+  }
+
+  void _handlePanEnd(DragEndDetails details) {
+    if (_swipeStart != null && _swipeCurrent != null) {
+      final distance = (_swipeCurrent! - _swipeStart!).distance;
+      game.setSwipePower(distance);
+    }
+    _swipeStart = null;
+    _swipeCurrent = null;
+  }
+
+  void _handlePanCancel() {
+    _swipeStart = null;
+    _swipeCurrent = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Wrap in GestureDetector for paddle control
-          GestureDetector(
-            onHorizontalDragUpdate: (details) {
-              game.bottomPlayer.handleDrag(details.delta.dx);
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapUp: _handleTapUp,
+              onPanStart: _handlePanStart,
+              onPanUpdate: _handlePanUpdate,
+              onPanEnd: _handlePanEnd,
+              onPanCancel: _handlePanCancel,
+              child: GameWidget(game: game),
+            ),
+          ),
+          // Shot controls
+          ValueListenableBuilder<bool>(
+            valueListenable: game.showShotControls,
+            builder: (context, showShotControls, child) {
+              if (!showShotControls) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
+                bottom: 40,
+                left: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _buildShotButton(
+                          'Normal',
+                          Colors.blue,
+                          () => game.selectShot('Flat'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildShotButton(
+                          'Slice',
+                          Colors.orange,
+                          () => game.selectShot('Slice'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildShotButton(
+                          'Lob',
+                          Colors.lightBlue,
+                          () => game.selectShot('Lob'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildShotButton(
+                          'Power',
+                          Colors.redAccent,
+                          () => game.selectShot('Power'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ValueListenableBuilder<String>(
+                      valueListenable: game.shotPowerLabel,
+                      builder: (context, powerLabel, child) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            'Power: $powerLabel',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
             },
-            child: GameWidget(
-              game: game,
+          ),
+          // Sprint Button (Bottom Right)
+          Positioned(
+            bottom: 40,
+            right: 30,
+            child: GestureDetector(
+              onPanDown: (_) => game.setSprinting(true),
+              onPanCancel: () => game.setSprinting(false),
+              onPanEnd: (_) => game.setSprinting(false),
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.flash_on,
+                  color: Colors.white,
+                  size: 36,
+                ),
+              ),
             ),
           ),
           // Pause button in top-right corner
@@ -54,13 +225,11 @@ class GameScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.pause,
-                  color: Colors.white,
-                  size: 28,
-                ),
+                child: const Icon(Icons.pause, color: Colors.white, size: 28),
               ),
             ),
           ),
@@ -68,12 +237,60 @@ class GameScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildShotButton(String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.85),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class TennisGame extends FlameGame with HasCollisionDetection {
+class TennisGame extends FlameGame with HasCollisionDetection, DragCallbacks {
   final Color courtColor;
   final String courtName;
   final BuildContext context;
+  final String playerName;
+  final int age;
+  final String difficulty;
+  final String? racket;
+  final String? shoes;
+  final String? shirtStyle;
+
+  // Shot mechanics
+  String nextShotType = 'Flat'; // 'Flat', 'Lob', 'Slice', 'Power'
+  final ValueNotifier<bool> showShotControls = ValueNotifier(false);
+  final ValueNotifier<String> shotPowerLabel = ValueNotifier('Normal');
+  final ValueNotifier<String> selectedShotLabel = ValueNotifier('Flat');
+  double shotPower = 1.0;
+
+  bool isSprinting = false;
 
   // Score tracking
   int bottomPlayerScore = 0;
@@ -95,6 +312,12 @@ class TennisGame extends FlameGame with HasCollisionDetection {
     required this.courtColor,
     required this.courtName,
     required this.context,
+    required this.playerName,
+    required this.age,
+    required this.difficulty,
+    this.racket,
+    this.shoes,
+    this.shirtStyle,
   });
 
   @override
@@ -109,8 +332,18 @@ class TennisGame extends FlameGame with HasCollisionDetection {
     add(Net());
 
     // Add players
-    bottomPlayer = Player(isBottom: true);
-    topPlayer = Player(isBottom: false);
+    bottomPlayer = Player(
+      isBottom: true,
+      difficulty: difficulty,
+      racket: racket,
+      shoes: shoes,
+    );
+    topPlayer = Player(
+      isBottom: false,
+      difficulty: difficulty,
+      racket: racket,
+      shoes: shoes,
+    );
     add(bottomPlayer);
     add(topPlayer);
 
@@ -134,9 +367,14 @@ class TennisGame extends FlameGame with HasCollisionDetection {
 
     // AI logic - make top player follow the ball with smooth movement
     topPlayer.moveTowardsBall(ball.position, dt);
+
+    final shouldShowShots =
+        ball.position.y > size.y * 0.35 && ball.velocity.y > 0;
+    if (showShotControls.value != shouldShowShots) {
+      showShotControls.value = shouldShowShots;
+    }
   }
 
-  @override
   // KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
   //   if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
   //     if (!isGameOver) {
@@ -146,11 +384,10 @@ class TennisGame extends FlameGame with HasCollisionDetection {
   //   }
   //   return KeyEventResult.ignored;
   // }
-
   // Toggle pause state
   void togglePause() {
     if (isGameOver) return; // Can't pause when game over
-    
+
     isPaused = !isPaused;
 
     if (isPaused) {
@@ -164,6 +401,37 @@ class TennisGame extends FlameGame with HasCollisionDetection {
     }
     //
     // debugPrint('Game ${isPaused ? 'paused' : 'resumed'}');
+  }
+
+  void setSprinting(bool sprinting) {
+    isSprinting = sprinting;
+  }
+
+  void selectShot(String shot) {
+    nextShotType = shot;
+    selectedShotLabel.value = shot;
+  }
+
+  void setSwipePower(double distance) {
+    if (distance < 80) {
+      shotPower = 0.9;
+      shotPowerLabel.value = 'Weak';
+    } else if (distance < 180) {
+      shotPower = 1.0;
+      shotPowerLabel.value = 'Normal';
+    } else if (distance < 280) {
+      shotPower = 1.2;
+      shotPowerLabel.value = 'Strong';
+    } else {
+      shotPower = 1.4;
+      shotPowerLabel.value = 'Power';
+    }
+  }
+
+  void movePlayerTo(Vector2 rawPosition) {
+    final targetX = rawPosition.x.clamp(40.0, size.x - 40.0);
+    final targetY = rawPosition.y.clamp(size.y / 2 + 20.0, size.y - 20.0);
+    bottomPlayer.setTarget(Vector2(targetX, targetY));
   }
 
   // Check if game is over (someone won)
@@ -197,6 +465,7 @@ class TennisGame extends FlameGame with HasCollisionDetection {
       playerWon: playerWon,
       playerScore: bottomPlayerScore,
       aiScore: topPlayerScore,
+      playerName: playerName,
     );
     add(gameOverScreen!);
     //
@@ -211,6 +480,8 @@ class TennisGame extends FlameGame with HasCollisionDetection {
       result: playerWon ? 'WIN' : 'LOSS',
       createdAt: DateTime.now().millisecondsSinceEpoch,
       courtName: courtName,
+      playerName: playerName,
+      difficulty: difficulty,
     );
 
     await DatabaseHelper.instance.insertGameResult(result);
@@ -239,7 +510,7 @@ class TennisGame extends FlameGame with HasCollisionDetection {
     bottomPlayerScore = 0;
     topPlayerScore = 0;
     ball.resetBall();
-    
+
     // Unpause and remove menu
     if (isPaused) {
       isPaused = false;
@@ -257,9 +528,18 @@ class TennisGame extends FlameGame with HasCollisionDetection {
     Navigator.of(context).pop();
   }
 
+  // Helper methods to play sound safely
+  void playSound(String filename) {
+    try {
+      FlameAudio.play(filename);
+    } catch (e) {
+      // Ignore missing audio files since user needs to add them
+    }
+  }
+
   // Announce score when point is scored
   void announceScore(bool playerScored) {
+    playSound('score.mp3');
     scoreDisplay.announceScore();
   }
 }
-

@@ -1,3 +1,4 @@
+// screens/animation_screen.dart
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'game_screen.dart';
@@ -5,11 +6,23 @@ import 'game_screen.dart';
 class AnimationScreen extends StatefulWidget {
   final Color courtColor;
   final String courtName;
+  final String playerName;
+  final int age;
+  final String difficulty;
+  final String? racket;
+  final String? shoes;
+  final String? shirtStyle;
 
   const AnimationScreen({
     super.key,
     required this.courtColor,
     required this.courtName,
+    required this.playerName,
+    required this.age,
+    required this.difficulty,
+    this.racket,
+    this.shoes,
+    this.shirtStyle,
   });
 
   @override
@@ -27,10 +40,17 @@ class _AnimationScreenState extends State<AnimationScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => GameScreen(
-              courtColor: widget.courtColor,
-              courtName: widget.courtName,
-            ),
+            builder:
+                (context) => GameScreen(
+                  courtColor: widget.courtColor,
+                  courtName: widget.courtName,
+                  playerName: widget.playerName,
+                  age: widget.age,
+                  difficulty: widget.difficulty,
+                  racket: widget.racket,
+                  shoes: widget.shoes,
+                  shirtStyle: widget.shirtStyle,
+                ),
           ),
         );
       }
@@ -46,9 +66,9 @@ class _AnimationScreenState extends State<AnimationScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              widget.courtColor.withOpacity(0.8),
+              widget.courtColor.withValues(alpha: 0.8),
               widget.courtColor,
-              widget.courtColor.withOpacity(0.6),
+              widget.courtColor.withValues(alpha: 0.6),
             ],
           ),
         ),
@@ -58,7 +78,7 @@ class _AnimationScreenState extends State<AnimationScreen> {
             children: [
               // Lottie Animation
               Lottie.asset(
-                'assets/animations/tennisracket.json',  // Change to your filename
+                'assets/animations/tennisracket.json', // Change to your filename
                 width: 300,
                 height: 300,
                 fit: BoxFit.contain,

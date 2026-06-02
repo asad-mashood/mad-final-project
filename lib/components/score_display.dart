@@ -69,13 +69,18 @@ class ScoreDisplay extends PositionComponent with HasGameRef<TennisGame> {
   }
 
   // Convert score to tennis numeric format
-  String getTennisPoints(int points) {
+  String getTennisPoints(int points, int opponentPoints) {
+    if (points >= 3 && opponentPoints >= 3) {
+      if (points == opponentPoints) return '40'; // Deuce
+      if (points > opponentPoints) return 'AD';
+      return '40'; // the other has advantage
+    }
     switch (points) {
       case 0: return '0';
       case 1: return '15';
       case 2: return '30';
       case 3: return '40';
-      default: return '40'; // For advantage situations
+      default: return '40';
     }
   }
 
@@ -124,9 +129,9 @@ class ScoreDisplay extends PositionComponent with HasGameRef<TennisGame> {
   void update(double dt) {
     super.update(dt);
 
-    // Update scores in tennis format (0, 15, 30, 40)
-    topScoreText.text = getTennisPoints(gameRef.topPlayerScore);
-    bottomScoreText.text = getTennisPoints(gameRef.bottomPlayerScore);
+    // Update scores in tennis format (0, 15, 30, 40, AD)
+    topScoreText.text = getTennisPoints(gameRef.topPlayerScore, gameRef.bottomPlayerScore);
+    bottomScoreText.text = getTennisPoints(gameRef.bottomPlayerScore, gameRef.topPlayerScore);
 
     // Handle announcement timer
     if (announcementTimer > 0) {
